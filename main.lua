@@ -12,7 +12,7 @@ function love.load()
         acceleration = 100,
         deceleration = 75,
         segmentIndex = 1,
-        angle = 0,
+        angle = track.segments[1].angle,
         wheelRotation = 0
     }
 
@@ -40,7 +40,7 @@ function love.load()
     }
 
     smoke = {}
-    timeOfDay = 0 
+    timeOfDay = 0
     cameraOffset = 0
 end
 
@@ -57,24 +57,37 @@ function generateTrack()
         x = x + math.cos(angle) * length
         y = y + math.sin(angle) * length
     end
+
+    smoothTrack()
+end
+
+function smoothTrack()
+    for i = 1, #track.segments - 1 do
+        local current = track.segments[i]
+        local next = track.segments[i + 1]
+        local dx = next.x - current.x
+        local dy = next.y - current.y
+        current.length = math.sqrt(dx * dx + dy * dy)
+        current.angle = math.atan2(dy, dx)
+        next.x = current.x + math.cos(current.angle) * current.length
+        next.y = current.y + math.sin(current.angle) * current.length
+    end
 end
 
 function love.update(dt)
-   
     timeOfDay = (timeOfDay + dt / 60) % 1
 
     local segment = track.segments[train.segmentIndex]
     local nextX = train.x + math.cos(segment.angle) * train.speed * dt
     local nextY = train.y + math.sin(segment.angle) * train.speed * dt
+    local segmentEndX = segment.x + math.cos(segment.angle) * segment.length
+    local segmentEndY = segment.y + math.sin(segment.angle) * segment.length
 
-    if nextX > segment.x + math.cos(segment.angle) * segment.length or
-       nextY > segment.y + math.sin(segment.angle) * segment.length then
+    if (nextX - segmentEndX)^2 + (nextY - segmentEndY)^2 <= train.speed^2 * dt^2 then
         train.segmentIndex = train.segmentIndex + 1
-
         if train.segmentIndex > #track.segments then
             train.segmentIndex = 1
         end
-
         segment = track.segments[train.segmentIndex]
         train.x = segment.x
         train.y = segment.y
@@ -90,7 +103,6 @@ function love.update(dt)
         train.speed = math.max(train.speed - train.deceleration * dt, train.minSpeed)
     end
 
-    
     if train.speed > 0 then
         table.insert(smoke, {x = train.x - math.cos(train.angle) * train.width / 2, y = train.y - math.sin(train.angle) * train.width / 2, alpha = 1})
     end
@@ -102,7 +114,6 @@ function love.update(dt)
         end
     end
 
-  
     for _, boost in ipairs(speedBoosts) do
         local dist = math.sqrt((train.x - boost.x) ^ 2 + (train.y - boost.y) ^ 2)
         if dist < boost.radius + train.width / 2 then
@@ -110,7 +121,6 @@ function love.update(dt)
         end
     end
 
-    
     for _, obstacle in ipairs(obstacles) do
         local dist = math.sqrt((train.x - obstacle.x) ^ 2 + (train.y - obstacle.y) ^ 2)
         if dist < obstacle.radius + train.width / 2 then
@@ -119,8 +129,6 @@ function love.update(dt)
     end
 
     train.wheelRotation = train.wheelRotation + (train.speed / 20) * dt
-
-   
     cameraOffset = train.x - love.graphics.getWidth() / 2
 end
 
@@ -131,11 +139,9 @@ function love.draw()
     love.graphics.setColor(r, g, b)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
-    
     love.graphics.push()
     love.graphics.translate(-cameraOffset, 0)
 
- 
     love.graphics.setColor(0.4, 0.7, 0.1)
     for _, tree in ipairs(background.trees) do
         love.graphics.rectangle("fill", tree.x, tree.y, tree.width, tree.height)
@@ -146,7 +152,6 @@ function love.draw()
         love.graphics.circle("fill", cloud.x, cloud.y, cloud.size)
     end
 
-   
     love.graphics.setColor(0.8, 0.8, 0.8)
     for _, segment in ipairs(track.segments) do
         love.graphics.push()
@@ -156,7 +161,6 @@ function love.draw()
         love.graphics.pop()
     end
 
-  
     love.graphics.setColor(1, 0.5, 0)
     for _, boost in ipairs(speedBoosts) do
         love.graphics.circle("fill", boost.x, boost.y, boost.radius)
@@ -167,30 +171,24 @@ function love.draw()
         love.graphics.circle("fill", obstacle.x, obstacle.y, obstacle.radius)
     end
 
-
     love.graphics.setColor(0, 0.5, 1)
     love.graphics.push()
     love.graphics.translate(train.x, train.y)
     love.graphics.rotate(train.angle)
     love.graphics.rectangle("fill", -train.width / 2, -train.height / 2, train.width, train.height)
-
-  
     love.graphics.setColor(0, 0, 0)
     love.graphics.circle("fill", -train.width / 4, train.height / 2, 8)
     love.graphics.circle("fill", train.width / 4, train.height / 2, 8)
-
     love.graphics.pop()
 
-   
     for _, puff in ipairs(smoke) do
         love.graphics.setColor(0.5, 0.5, 0.5, puff.alpha)
         love.graphics.circle("fill", puff.x, puff.y, 10)
     end
 
-    
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Speed: " .. math.floor(train.speed), 10 + cameraOffset, 10)
     love.graphics.print("Segment: " .. train.segmentIndex, 10 + cameraOffset, 30)
 
-    love.graphics.pop() -- End camera translation
+    love.graphics.pop()
 end
