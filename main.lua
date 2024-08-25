@@ -1,5 +1,4 @@
 function love.load()
-    -- Track Layout
     generateTrack()
 
     train = {
@@ -41,7 +40,7 @@ function love.load()
     }
 
     smoke = {}
-    timeOfDay = 0 -- Day-Night cycle timer
+    timeOfDay = 0 
     cameraOffset = 0
 end
 
@@ -61,7 +60,7 @@ function generateTrack()
 end
 
 function love.update(dt)
-    -- Update time of day for the day-night cycle
+   
     timeOfDay = (timeOfDay + dt / 60) % 1
 
     local segment = track.segments[train.segmentIndex]
@@ -91,7 +90,7 @@ function love.update(dt)
         train.speed = math.max(train.speed - train.deceleration * dt, train.minSpeed)
     end
 
-    -- Update smoke particles
+    
     if train.speed > 0 then
         table.insert(smoke, {x = train.x - math.cos(train.angle) * train.width / 2, y = train.y - math.sin(train.angle) * train.width / 2, alpha = 1})
     end
@@ -103,7 +102,7 @@ function love.update(dt)
         end
     end
 
-    -- Collision with speed boosts
+  
     for _, boost in ipairs(speedBoosts) do
         local dist = math.sqrt((train.x - boost.x) ^ 2 + (train.y - boost.y) ^ 2)
         if dist < boost.radius + train.width / 2 then
@@ -111,7 +110,7 @@ function love.update(dt)
         end
     end
 
-    -- Collision with obstacles
+    
     for _, obstacle in ipairs(obstacles) do
         local dist = math.sqrt((train.x - obstacle.x) ^ 2 + (train.y - obstacle.y) ^ 2)
         if dist < obstacle.radius + train.width / 2 then
@@ -121,23 +120,22 @@ function love.update(dt)
 
     train.wheelRotation = train.wheelRotation + (train.speed / 20) * dt
 
-    -- Update camera to follow the train
+   
     cameraOffset = train.x - love.graphics.getWidth() / 2
 end
 
 function love.draw()
-    -- Set background color based on time of day
     local r = 0.6 + 0.4 * math.sin(2 * math.pi * timeOfDay)
     local g = 0.8 + 0.2 * math.sin(2 * math.pi * timeOfDay)
     local b = 1 - 0.5 * math.sin(2 * math.pi * timeOfDay)
     love.graphics.setColor(r, g, b)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
-    -- Translate for camera
+    
     love.graphics.push()
     love.graphics.translate(-cameraOffset, 0)
 
-    -- Draw background elements
+ 
     love.graphics.setColor(0.4, 0.7, 0.1)
     for _, tree in ipairs(background.trees) do
         love.graphics.rectangle("fill", tree.x, tree.y, tree.width, tree.height)
@@ -148,7 +146,7 @@ function love.draw()
         love.graphics.circle("fill", cloud.x, cloud.y, cloud.size)
     end
 
-    -- Draw track
+   
     love.graphics.setColor(0.8, 0.8, 0.8)
     for _, segment in ipairs(track.segments) do
         love.graphics.push()
@@ -158,39 +156,38 @@ function love.draw()
         love.graphics.pop()
     end
 
-    -- Draw speed boosts
+  
     love.graphics.setColor(1, 0.5, 0)
     for _, boost in ipairs(speedBoosts) do
         love.graphics.circle("fill", boost.x, boost.y, boost.radius)
     end
 
-    -- Draw obstacles
     love.graphics.setColor(0.5, 0, 0)
     for _, obstacle in ipairs(obstacles) do
         love.graphics.circle("fill", obstacle.x, obstacle.y, obstacle.radius)
     end
 
-    -- Draw train
+
     love.graphics.setColor(0, 0.5, 1)
     love.graphics.push()
     love.graphics.translate(train.x, train.y)
     love.graphics.rotate(train.angle)
     love.graphics.rectangle("fill", -train.width / 2, -train.height / 2, train.width, train.height)
 
-    -- Draw wheels
+  
     love.graphics.setColor(0, 0, 0)
     love.graphics.circle("fill", -train.width / 4, train.height / 2, 8)
     love.graphics.circle("fill", train.width / 4, train.height / 2, 8)
 
     love.graphics.pop()
 
-    -- Draw smoke
+   
     for _, puff in ipairs(smoke) do
         love.graphics.setColor(0.5, 0.5, 0.5, puff.alpha)
         love.graphics.circle("fill", puff.x, puff.y, 10)
     end
 
-    -- Draw HUD
+    
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Speed: " .. math.floor(train.speed), 10 + cameraOffset, 10)
     love.graphics.print("Segment: " .. train.segmentIndex, 10 + cameraOffset, 30)
